@@ -22,3 +22,50 @@ model User {
   password String
 
 }
+
+
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+}
+model Customer {
+  id Int @id @default(autoincrement())
+  name String
+  taxId String? @unique 
+  status CustomerStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+
+  sales Sale[]
+  @@map("customer")
+
+}
+
+
+enum SaleType {
+  SERVICE
+  PRODUCT
+}
+
+enum SaleStatus {
+  COMPLETED
+  CANCELLED
+}
+
+model Sale {
+  id Int @id @default(autoincrement())
+  saleDate DateTime
+  code String @unique
+  branch String
+  description String
+  quantity Int
+  unitValue Decimal @db.Decimal(10, 2)
+  totalValue Decimal @db.Decimal(10, 2)
+  customerId Int
+  registrationDate DateTime @default(now())
+  type SaleType
+  status SaleStatus 
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  
+  @@map("sale")
+}
