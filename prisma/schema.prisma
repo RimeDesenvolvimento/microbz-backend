@@ -54,7 +54,7 @@ enum SaleStatus {
 model Sale {
   id Int @id @default(autoincrement())
   saleDate DateTime
-  code String @unique
+  code String 
   branch String
   description String
   quantity Int
@@ -68,4 +68,13 @@ model Sale {
   customer Customer @relation(fields: [customerId], references: [id])
   
   @@map("sale")
+}
+
+
+model Business {
+  id Int @id @default(autoincrement())
+  name String
+ 
+  createdAt DateTime @default(now())
+  @@map("business")
 }
