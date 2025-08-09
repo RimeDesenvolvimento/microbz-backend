@@ -36,6 +36,8 @@ model Customer {
   createdAt DateTime @default(now())
 
   sales Sale[]
+  companyBranchId Int
+  companyBranch CompanyBranch @relation(fields: [companyBranchId], references: [id])
   @@map("customer")
 
 }
@@ -66,7 +68,9 @@ model Sale {
   status SaleStatus 
 
   customer Customer @relation(fields: [customerId], references: [id])
-  
+  companyBranchId Int
+  companyBranch CompanyBranch @relation(fields: [companyBranchId], references: [id])
+
   @@map("sale")
 }
 
@@ -84,9 +88,14 @@ model CompanyBranch {
   id Int @id @default(autoincrement())
   name String
   companyId Int
+  code String? 
 
   company Company @relation(fields: [companyId], references: [id])
-  
+  sales Sale[]
+  customers Customer[]
   createdAt DateTime @default(now())
+
+  @@unique([name, companyId])
+  @@unique([code, companyId])
   @@map("company_branch")
 }
