@@ -71,10 +71,22 @@ model Sale {
 }
 
 
-model Business {
+model Company {
   id Int @id @default(autoincrement())
   name String
  
   createdAt DateTime @default(now())
-  @@map("business")
+  companyBranches CompanyBranch[]
+  @@map("company")
+}
+
+model CompanyBranch {
+  id Int @id @default(autoincrement())
+  name String
+  companyId Int
+
+  company Company @relation(fields: [companyId], references: [id])
+  
+  createdAt DateTime @default(now())
+  @@map("company_branch")
 }
