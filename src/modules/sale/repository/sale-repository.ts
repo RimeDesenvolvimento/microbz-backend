@@ -73,8 +73,6 @@ export class SaleRepository {
 
     const where: any = {};
 
-    console.log('params:', params);
-
     if (customerId) {
       where.customerId = customerId;
     }

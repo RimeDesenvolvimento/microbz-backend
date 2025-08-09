@@ -5,6 +5,7 @@ export type CreateCustomerData = {
   name: string;
   taxId: string | null;
   status: CustomerStatus;
+  companyBranchId: number;
 };
 
 export class CustomerRepository {
