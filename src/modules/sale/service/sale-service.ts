@@ -4,10 +4,12 @@ import {
   SaleType,
   SaleStatus,
   CustomerStatus,
+  CompanyBranch,
 } from '@prisma/client';
 import { BadRequestError } from '../../../common/errors/http-errors';
 import { SaleRepository } from '../repository/sale-repository';
 import { CustomerRepository } from '../../customer/repository/customer-repository';
+import { CompanyBranchRepository } from '../../company-branch/repository/company-branch-repository';
 
 export type CreateSaleParams = {
   saleDate: Date;
@@ -21,6 +23,7 @@ export type CreateSaleParams = {
   status: SaleStatus;
   customer: string;
   taxId?: string;
+  companyId: number;
 };
 
 export type GetSalesParams = {
@@ -34,41 +37,137 @@ export type GetSalesParams = {
 export class SaleService {
   constructor(
     private readonly saleRepository: SaleRepository,
-    private readonly customerRepository: CustomerRepository
-  ) {
-    this.saleRepository = saleRepository;
-    this.customerRepository = customerRepository;
-  }
+    private readonly customerRepository: CustomerRepository,
+    private readonly companyBranchRepository: CompanyBranchRepository
+  ) {}
 
   async createSales(salesData: CreateSaleParams[]): Promise<Sale[]> {
     if (!Array.isArray(salesData) || salesData.length === 0) {
       throw new BadRequestError('É necessário informar pelo menos uma venda');
     }
 
-    const codes = salesData.map(sale => sale.code);
-    const uniqueCodes = new Set(codes);
-    if (codes.length !== uniqueCodes.size) {
-      throw new BadRequestError('Códigos de venda duplicados no array');
+    const uniqueBranches = new Map<
+      string,
+      { name: string; companyId: number }
+    >();
+    const uniqueCustomersByTaxId = new Map<
+      string,
+      { name: string; taxId: string }
+    >();
+    const uniqueCustomersByName = new Map<
+      string,
+      { name: string; companyId: number }
+    >();
+
+    salesData.forEach(sale => {
+      const branchKey = `${sale.branch}|${sale.companyId}`;
+      if (!uniqueBranches.has(branchKey)) {
+        uniqueBranches.set(branchKey, {
+          name: sale.branch,
+          companyId: sale.companyId,
+        });
+      }
+
+      if (sale.taxId) {
+        if (!uniqueCustomersByTaxId.has(sale.taxId)) {
+          uniqueCustomersByTaxId.set(sale.taxId, {
+            name: sale.customer,
+            taxId: sale.taxId,
+          });
+        }
+      } else {
+        const customerKey = `${sale.customer}|${sale.companyId}`;
+        if (!uniqueCustomersByName.has(customerKey)) {
+          uniqueCustomersByName.set(customerKey, {
+            name: sale.customer,
+            companyId: sale.companyId,
+          });
+        }
+      }
+    });
+
+    const branchSearchPromises = Array.from(uniqueBranches.entries()).map(
+      async ([key, branchData]) => {
+        const existing =
+          await this.companyBranchRepository.getByNameAndCompanyId(
+            branchData.name,
+            branchData.companyId
+          );
+        return { key, branchData, existing };
+      }
+    );
+
+    const branchSearchResults = await Promise.all(branchSearchPromises);
+
+    const branchCache = new Map<string, CompanyBranch>();
+
+    for (const { key, branchData, existing } of branchSearchResults) {
+      if (existing) {
+        branchCache.set(key, existing);
+      } else {
+        const newBranch = await this.companyBranchRepository.create({
+          name: branchData.name,
+          code: branchData.name, // TODO: ver sobre código depois
+          companyId: branchData.companyId,
+        });
+        branchCache.set(key, newBranch);
+      }
     }
 
-    const existingCodes = await this.saleRepository.getExistingCodes(codes);
-    if (existingCodes.length > 0) {
-      throw new BadRequestError(
-        `Códigos de venda já existem: ${existingCodes.join(', ')}`
-      );
-    }
+    const customerSearchPromises = [
+      ...Array.from(uniqueCustomersByTaxId.keys()).map(async taxId => {
+        const customer = await this.customerRepository.getByTaxId(taxId);
+        return { type: 'taxId', key: taxId, customer };
+      }),
 
-    const customerPromises = salesData.map(async saleData => {
-      const { customer, taxId } = saleData;
+      ...Array.from(uniqueCustomersByName.entries()).map(
+        async ([key, customerData]) => {
+          const customer = await this.customerRepository.getByName(
+            customerData.name
+          );
+          return { type: 'name', key, customer };
+        }
+      ),
+    ];
+
+    const customerSearchResults = await Promise.all(customerSearchPromises);
+
+    const customerCacheByTaxId = new Map<string, Customer>();
+    const customerCacheByName = new Map<string, Customer>();
+
+    customerSearchResults.forEach(result => {
+      if (result.customer) {
+        if (result.type === 'taxId') {
+          customerCacheByTaxId.set(result.key, result.customer);
+        } else {
+          customerCacheByName.set(result.key, result.customer);
+        }
+      }
+    });
+
+    const salesWithCustomers = [];
+
+    for (const saleData of salesData) {
+      const { customer, taxId, branch, companyId } = saleData;
+
+      const branchKey = `${branch}|${companyId}`;
+      const companyBranch = branchCache.get(branchKey);
+
+      if (!companyBranch) {
+        throw new Error(
+          `Filial não encontrada: ${branch} para empresa ${companyId}`
+        );
+      }
 
       let existingCustomer: Customer | null = null;
 
-      if (taxId) {
-        existingCustomer = await this.customerRepository.getByTaxId(taxId);
-      }
-
-      if (!existingCustomer) {
-        existingCustomer = await this.customerRepository.getByName(customer);
+      if (taxId && customerCacheByTaxId.has(taxId)) {
+        existingCustomer = customerCacheByTaxId.get(taxId)!;
+      } else if (!taxId) {
+        const customerKey = `${customer}|${companyId}`;
+        if (customerCacheByName.has(customerKey)) {
+          existingCustomer = customerCacheByName.get(customerKey)!;
+        }
       }
 
       if (!existingCustomer) {
@@ -76,26 +175,42 @@ export class SaleService {
           name: customer,
           taxId: taxId || null,
           status: CustomerStatus.ACTIVE,
+          companyBranchId: companyBranch.id,
         });
+
+        if (taxId) {
+          customerCacheByTaxId.set(taxId, existingCustomer);
+        } else {
+          const customerKey = `${customer}|${companyId}`;
+          customerCacheByName.set(customerKey, existingCustomer);
+        }
       }
 
-      return {
+      salesWithCustomers.push({
         saleData,
         customerId: existingCustomer.id,
-      };
-    });
+        companyBranchId: companyBranch.id,
+      });
+    }
 
-    const salesWithCustomers = await Promise.all(customerPromises);
-
-    const salesToCreate = salesWithCustomers.map(({ saleData, customerId }) => {
-      const { customer, taxId, ...saleDataWithoutCustomer } = saleData;
-      return {
-        ...saleDataWithoutCustomer,
-        customerId,
-        unitValue: Number(saleDataWithoutCustomer.unitValue),
-        totalValue: Number(saleDataWithoutCustomer.totalValue),
-      };
-    });
+    const salesToCreate = salesWithCustomers.map(
+      ({ saleData, customerId, companyBranchId }) => {
+        const {
+          customer,
+          companyId,
+          taxId,
+          branch,
+          ...saleDataWithoutCustomer
+        } = saleData;
+        return {
+          ...saleDataWithoutCustomer,
+          customerId,
+          companyBranchId,
+          unitValue: Number(saleDataWithoutCustomer.unitValue),
+          totalValue: Number(saleDataWithoutCustomer.totalValue),
+        };
+      }
+    );
 
     const createdSalesPromises = salesToCreate.map(saleData =>
       this.saleRepository.create(saleData)
