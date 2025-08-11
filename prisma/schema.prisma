@@ -112,6 +112,7 @@ model Goal {
   year Int
   
  
+  
   productRevenue Decimal @db.Decimal(12, 2) @default(0)
   serviceRevenue Decimal @db.Decimal(12, 2) @default(0)
   ticketAverage Decimal @db.Decimal(12, 2) @default(0)

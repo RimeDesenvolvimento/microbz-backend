@@ -7,6 +7,12 @@ export class CompanyBranchRepository {
     });
   }
 
+  async getById(id: number): Promise<CompanyBranch | null> {
+    return prisma.companyBranch.findUnique({
+      where: { id },
+    });
+  }
+
   async getAllByCompanyId(companyId: number): Promise<CompanyBranch[]> {
     return prisma.companyBranch.findMany({
       where: { companyId },
