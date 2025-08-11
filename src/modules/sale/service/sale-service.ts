@@ -279,7 +279,7 @@ export class SaleService {
     const year = monthAndYear.getFullYear();
     const month = monthAndYear.getMonth();
 
-    const startDate = new Date(year, month, 1);
+    const startDate = new Date(year, month, 1); //TODO: ta voltando 1 mes. corrigir
     const endDate = new Date(year, month + 1, 0);
 
     const previousMonth = month === 0 ? 11 : month - 1;

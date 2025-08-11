@@ -16,4 +16,22 @@ export class CustomerController {
       next(error);
     }
   }
+
+  async getCustomersMetrics(req: Request, res: Response, next: NextFunction) {
+    try {
+      const dateString = req.query.monthAndYear as string;
+      const [year, month] = dateString.split('-').map(Number);
+      const monthAndYear = new Date(year, month - 1, 1);
+      const companyBranchId = parseInt(req.query.companyBranchId as string);
+
+      const metrics = await this.customerService.getCustomerMetrics(
+        monthAndYear,
+        companyBranchId
+      );
+      res.status(200).json(metrics);
+    } catch (error) {
+      console.log('Erro ao buscar métricas de clientes: ', error);
+      next(error);
+    }
+  }
 }
