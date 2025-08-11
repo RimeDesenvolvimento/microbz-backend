@@ -92,9 +92,50 @@ model CompanyBranch {
   company Company @relation(fields: [companyId], references: [id])
   sales Sale[]
   customers Customer[]
+  goals Goal[] 
   createdAt DateTime @default(now())
 
   @@unique([name, companyId])
   @@unique([code, companyId])
   @@map("company_branch")
+}
+
+model Goal {
+  id Int @id @default(autoincrement())
+  
+ 
+  companyBranchId Int
+  companyBranch CompanyBranch @relation(fields: [companyBranchId], references: [id])
+  
+ 
+  month Int 
+  year Int
+  
+ 
+  productRevenue Decimal @db.Decimal(12, 2) @default(0)
+  serviceRevenue Decimal @db.Decimal(12, 2) @default(0)
+  ticketAverage Decimal @db.Decimal(12, 2) @default(0)
+  
+ 
+  customers Int @default(0)
+  newCustomers Int @default(0)
+  productsPerClient Decimal @db.Decimal(8, 2) @default(0)
+  servicesPerClient Decimal @db.Decimal(8, 2) @default(0)
+  
+  
+  marketing Decimal @db.Decimal(12, 2) @default(0)
+  leadsGenerated Int @default(0)
+  leadsMeetings Int @default(0)
+  marketingSales Int @default(0)
+  cpl Decimal @db.Decimal(10, 2) @default(0)
+  leadToMeetingRate Decimal @db.Decimal(5, 2) @default(0) 
+  meetingToSaleRate Decimal @db.Decimal(5, 2) @default(0) 
+  roas Decimal @db.Decimal(8, 2) @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  
+  @@unique([companyBranchId, month, year])
+  @@map("goal")
 }
