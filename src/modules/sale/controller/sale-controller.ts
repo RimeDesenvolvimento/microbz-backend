@@ -71,12 +71,9 @@ export class SaleController {
 
   async getSalesMetrics(req: Request, res: Response, next: NextFunction) {
     try {
-      const startDate = new Date(req.query.startDate as string);
-      const endDate = new Date(req.query.endDate as string);
-      const metrics = await this.saleService.getSalesMetrics(
-        startDate,
-        endDate
-      );
+      const monthAndYear = new Date(req.query.monthAndYear as string);
+
+      const metrics = await this.saleService.getSalesMetrics(monthAndYear);
       res.status(200).json(metrics);
     } catch (error) {
       console.log('Erro ao buscar métricas de vendas: ', error);

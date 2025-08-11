@@ -4,7 +4,6 @@ import prisma from '../../../../prisma/db';
 export type CreateSaleData = {
   saleDate: Date;
   code: string;
-  branch: string;
   description: string;
   quantity: number;
   unitValue: number;
@@ -12,6 +11,7 @@ export type CreateSaleData = {
   customerId: number;
   type: SaleType;
   status: SaleStatus;
+  companyBranchId: number;
 };
 
 interface FindSalesParams {

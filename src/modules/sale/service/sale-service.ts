@@ -248,15 +248,18 @@ export class SaleService {
     };
   }
 
-  async getSalesMetrics(
-    startDate: Date,
-    endDate: Date
-  ): Promise<{
+  async getSalesMetrics(monthAndYear: Date): Promise<{
     totalRevenue: number;
     productRevenue: number;
     serviceRevenue: number;
     averageTicket: number;
   }> {
+    const year = monthAndYear.getFullYear();
+    const month = monthAndYear.getMonth();
+
+    const startDate = new Date(year, month, 1);
+    const endDate = new Date(year, month + 1, 0);
+
     const sales = await this.saleRepository.findByDateRange(startDate, endDate);
 
     const totalRevenue = sales.reduce(
