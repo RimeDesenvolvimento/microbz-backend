@@ -5,11 +5,13 @@ import {
   SaleStatus,
   CustomerStatus,
   CompanyBranch,
+  Goal,
 } from '@prisma/client';
 import { BadRequestError } from '../../../common/errors/http-errors';
 import { SaleRepository } from '../repository/sale-repository';
 import { CustomerRepository } from '../../customer/repository/customer-repository';
 import { CompanyBranchRepository } from '../../company-branch/repository/company-branch-repository';
+import { GoalRepository } from '../../goal/repository/goal-repository';
 
 export type CreateSaleParams = {
   saleDate: Date;
@@ -38,7 +40,8 @@ export class SaleService {
   constructor(
     private readonly saleRepository: SaleRepository,
     private readonly customerRepository: CustomerRepository,
-    private readonly companyBranchRepository: CompanyBranchRepository
+    private readonly companyBranchRepository: CompanyBranchRepository,
+    private readonly goalRepository: GoalRepository
   ) {}
 
   async createSales(salesData: CreateSaleParams[]): Promise<Sale[]> {
@@ -248,11 +251,30 @@ export class SaleService {
     };
   }
 
-  async getSalesMetrics(monthAndYear: Date): Promise<{
-    totalRevenue: number;
-    productRevenue: number;
-    serviceRevenue: number;
-    averageTicket: number;
+  async getSalesMetrics(
+    monthAndYear: Date,
+    companyBranchId: number
+  ): Promise<{
+    totalRevenue: {
+      selectedPeriod: number;
+      previousMonth: number;
+      selectedPeriodGoal: number;
+    };
+    productRevenue: {
+      selectedPeriod: number;
+      previousMonth: number;
+      selectedPeriodGoal: number;
+    };
+    serviceRevenue: {
+      selectedPeriod: number;
+      previousMonth: number;
+      selectedPeriodGoal: number;
+    };
+    averageTicket: {
+      selectedPeriod: number;
+      previousMonth: number;
+      selectedPeriodGoal: number;
+    };
   }> {
     const year = monthAndYear.getFullYear();
     const month = monthAndYear.getMonth();
@@ -260,8 +282,62 @@ export class SaleService {
     const startDate = new Date(year, month, 1);
     const endDate = new Date(year, month + 1, 0);
 
-    const sales = await this.saleRepository.findByDateRange(startDate, endDate);
+    const previousMonth = month === 0 ? 11 : month - 1;
+    const previousYear = month === 0 ? year - 1 : year;
+    const previousStartDate = new Date(previousYear, previousMonth, 1);
+    const previousEndDate = new Date(previousYear, previousMonth + 1, 0);
 
+    const [currentSales, previousSales, goals] = await Promise.all([
+      this.saleRepository.findByDateRange(startDate, endDate, companyBranchId),
+      this.saleRepository.findByDateRange(
+        previousStartDate,
+        previousEndDate,
+        companyBranchId
+      ),
+
+      this.goalRepository.getByBranchAndPeriod(
+        companyBranchId,
+        year,
+        month + 1
+      ),
+    ]);
+
+    const currentMetrics = this.calculateSalesMetrics(currentSales);
+
+    const previousMetrics = this.calculateSalesMetrics(previousSales);
+
+    return {
+      totalRevenue: {
+        selectedPeriod: currentMetrics.totalRevenue,
+        previousMonth: previousMetrics.totalRevenue,
+        selectedPeriodGoal: goals
+          ? Number(goals.productRevenue) + Number(goals.serviceRevenue)
+          : 0,
+      },
+      productRevenue: {
+        selectedPeriod: currentMetrics.productRevenue,
+        previousMonth: previousMetrics.productRevenue,
+        selectedPeriodGoal: goals ? Number(goals.productRevenue) : 0,
+      },
+      serviceRevenue: {
+        selectedPeriod: currentMetrics.serviceRevenue,
+        previousMonth: previousMetrics.serviceRevenue,
+        selectedPeriodGoal: goals ? Number(goals.serviceRevenue) : 0,
+      },
+      averageTicket: {
+        selectedPeriod: currentMetrics.averageTicket,
+        previousMonth: previousMetrics.averageTicket,
+        selectedPeriodGoal: goals ? Number(goals.ticketAverage) : 0,
+      },
+    };
+  }
+
+  private calculateSalesMetrics(sales: Sale[]): {
+    totalRevenue: number;
+    productRevenue: number;
+    serviceRevenue: number;
+    averageTicket: number;
+  } {
     const totalRevenue = sales.reduce(
       (sum, sale) => sum + Number(sale.totalValue),
       0

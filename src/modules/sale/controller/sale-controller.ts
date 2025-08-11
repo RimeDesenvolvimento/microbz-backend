@@ -71,9 +71,15 @@ export class SaleController {
 
   async getSalesMetrics(req: Request, res: Response, next: NextFunction) {
     try {
-      const monthAndYear = new Date(req.query.monthAndYear as string);
+      const dateString = req.query.monthAndYear as string;
+      const [year, month] = dateString.split('-').map(Number);
+      const monthAndYear = new Date(year, month - 1, 1);
+      const companyBranchId = parseInt(req.query.companyBranchId as string);
 
-      const metrics = await this.saleService.getSalesMetrics(monthAndYear);
+      const metrics = await this.saleService.getSalesMetrics(
+        monthAndYear,
+        companyBranchId
+      );
       res.status(200).json(metrics);
     } catch (error) {
       console.log('Erro ao buscar métricas de vendas: ', error);

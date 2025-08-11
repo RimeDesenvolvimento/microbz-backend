@@ -170,19 +170,24 @@ export class SaleRepository {
     return sale;
   }
 
-  async findByDateRange(startDate: Date, endDate: Date): Promise<Sale[]> {
+  async findByDateRange(
+    startDate: Date,
+    endDate: Date,
+    companyBranchId: number
+  ): Promise<Sale[]> {
     const sales = await prisma.sale.findMany({
       where: {
-        registrationDate: {
+        saleDate: {
           gte: startDate,
           lte: endDate,
         },
+        companyBranchId,
       },
       include: {
         customer: true,
       },
       orderBy: {
-        registrationDate: 'desc',
+        saleDate: 'desc',
       },
     });
 
