@@ -259,27 +259,47 @@ export class SaleService {
       selectedPeriod: number;
       previousMonth: number;
       selectedPeriodGoal: number;
+      weeklyData: {
+        current: Array<{ week: string; value: number }>;
+        previous: Array<{ week: string; value: number }>;
+        goal: Array<{ week: string; value: number }>;
+      };
     };
     productRevenue: {
       selectedPeriod: number;
       previousMonth: number;
       selectedPeriodGoal: number;
+      weeklyData: {
+        current: Array<{ week: string; value: number }>;
+        previous: Array<{ week: string; value: number }>;
+        goal: Array<{ week: string; value: number }>;
+      };
     };
     serviceRevenue: {
       selectedPeriod: number;
       previousMonth: number;
       selectedPeriodGoal: number;
+      weeklyData: {
+        current: Array<{ week: string; value: number }>;
+        previous: Array<{ week: string; value: number }>;
+        goal: Array<{ week: string; value: number }>;
+      };
     };
     averageTicket: {
       selectedPeriod: number;
       previousMonth: number;
       selectedPeriodGoal: number;
+      weeklyData: {
+        current: Array<{ week: string; value: number }>;
+        previous: Array<{ week: string; value: number }>;
+        goal: Array<{ week: string; value: number }>;
+      };
     };
   }> {
     const year = monthAndYear.getFullYear();
     const month = monthAndYear.getMonth();
 
-    const startDate = new Date(year, month, 1); //TODO: ta voltando 1 mes. corrigir
+    const startDate = new Date(year, month, 1);
     const endDate = new Date(year, month + 1, 0);
 
     const previousMonth = month === 0 ? 11 : month - 1;
@@ -294,7 +314,6 @@ export class SaleService {
         previousEndDate,
         companyBranchId
       ),
-
       this.goalRepository.getByBranchAndPeriod(
         companyBranchId,
         year,
@@ -303,8 +322,20 @@ export class SaleService {
     ]);
 
     const currentMetrics = this.calculateSalesMetrics(currentSales);
-
     const previousMetrics = this.calculateSalesMetrics(previousSales);
+
+    const currentWeeklyMetrics = this.calculateWeeklySalesMetrics(
+      currentSales,
+      startDate,
+      endDate
+    );
+    const previousWeeklyMetrics = this.calculateWeeklySalesMetrics(
+      previousSales,
+      previousStartDate,
+      previousEndDate
+    );
+
+    const weeklyGoals = this.calculateWeeklyGoals(goals);
 
     return {
       totalRevenue: {
@@ -313,22 +344,169 @@ export class SaleService {
         selectedPeriodGoal: goals
           ? Number(goals.productRevenue) + Number(goals.serviceRevenue)
           : 0,
+        weeklyData: {
+          current: currentWeeklyMetrics.totalRevenue,
+          previous: previousWeeklyMetrics.totalRevenue,
+          goal: weeklyGoals.totalRevenue,
+        },
       },
       productRevenue: {
         selectedPeriod: currentMetrics.productRevenue,
         previousMonth: previousMetrics.productRevenue,
         selectedPeriodGoal: goals ? Number(goals.productRevenue) : 0,
+        weeklyData: {
+          current: currentWeeklyMetrics.productRevenue,
+          previous: previousWeeklyMetrics.productRevenue,
+          goal: weeklyGoals.productRevenue,
+        },
       },
       serviceRevenue: {
         selectedPeriod: currentMetrics.serviceRevenue,
         previousMonth: previousMetrics.serviceRevenue,
         selectedPeriodGoal: goals ? Number(goals.serviceRevenue) : 0,
+        weeklyData: {
+          current: currentWeeklyMetrics.serviceRevenue,
+          previous: previousWeeklyMetrics.serviceRevenue,
+          goal: weeklyGoals.serviceRevenue,
+        },
       },
       averageTicket: {
         selectedPeriod: currentMetrics.averageTicket,
         previousMonth: previousMetrics.averageTicket,
         selectedPeriodGoal: goals ? Number(goals.ticketAverage) : 0,
+        weeklyData: {
+          current: currentWeeklyMetrics.averageTicket,
+          previous: previousWeeklyMetrics.averageTicket,
+          goal: weeklyGoals.averageTicket,
+        },
       },
+    };
+  }
+
+  private calculateWeeklySalesMetrics(
+    sales: Sale[],
+    startDate: Date,
+    endDate: Date
+  ): {
+    totalRevenue: Array<{ week: string; value: number }>;
+    productRevenue: Array<{ week: string; value: number }>;
+    serviceRevenue: Array<{ week: string; value: number }>;
+    averageTicket: Array<{ week: string; value: number }>;
+  } {
+    const weeks = this.getWeeksInMonth(startDate, endDate);
+
+    const weeklyMetrics = weeks.map((week, index) => {
+      const weeklySales = sales.filter(sale => {
+        const saleDate = new Date(sale.saleDate);
+        return saleDate >= week.start && saleDate <= week.end;
+      });
+
+      const weekMetrics = this.calculateSalesMetrics(weeklySales);
+
+      return {
+        week: `Sem ${index + 1}`,
+        totalRevenue: weekMetrics.totalRevenue,
+        productRevenue: weekMetrics.productRevenue,
+        serviceRevenue: weekMetrics.serviceRevenue,
+        averageTicket: weekMetrics.averageTicket,
+      };
+    });
+
+    return {
+      totalRevenue: weeklyMetrics.map(w => ({
+        week: w.week,
+        value: w.totalRevenue,
+      })),
+      productRevenue: weeklyMetrics.map(w => ({
+        week: w.week,
+        value: w.productRevenue,
+      })),
+      serviceRevenue: weeklyMetrics.map(w => ({
+        week: w.week,
+        value: w.serviceRevenue,
+      })),
+      averageTicket: weeklyMetrics.map(w => ({
+        week: w.week,
+        value: w.averageTicket,
+      })),
+    };
+  }
+
+  private getWeeksInMonth(
+    startDate: Date,
+    endDate: Date
+  ): Array<{ start: Date; end: Date }> {
+    const weeks: Array<{ start: Date; end: Date }> = [];
+    const totalDays = endDate.getDate();
+    const daysPerWeek = Math.ceil(totalDays / 4);
+
+    for (let i = 0; i < 4; i++) {
+      const weekStart = new Date(startDate);
+      weekStart.setDate(1 + i * daysPerWeek);
+
+      const weekEnd = new Date(startDate);
+      weekEnd.setDate(Math.min(totalDays, (i + 1) * daysPerWeek));
+
+      if (i === 3) {
+        weekEnd.setDate(totalDays);
+      }
+
+      weeks.push({ start: weekStart, end: weekEnd });
+    }
+
+    return weeks;
+  }
+
+  private calculateWeeklyGoals(goals: any): {
+    totalRevenue: Array<{ week: string; value: number }>;
+    productRevenue: Array<{ week: string; value: number }>;
+    serviceRevenue: Array<{ week: string; value: number }>;
+    averageTicket: Array<{ week: string; value: number }>;
+  } {
+    if (!goals) {
+      return {
+        totalRevenue: [1, 2, 3, 4].map(i => ({ week: `Sem ${i}`, value: 0 })),
+        productRevenue: [1, 2, 3, 4].map(i => ({ week: `Sem ${i}`, value: 0 })),
+        serviceRevenue: [1, 2, 3, 4].map(i => ({ week: `Sem ${i}`, value: 0 })),
+        averageTicket: [1, 2, 3, 4].map(i => ({ week: `Sem ${i}`, value: 0 })),
+      };
+    }
+
+    const totalGoal =
+      Number(goals.productRevenue) + Number(goals.serviceRevenue);
+    const productGoal = Number(goals.productRevenue);
+    const serviceGoal = Number(goals.serviceRevenue);
+    const ticketGoal = Number(goals.ticketAverage);
+
+    const weeklyTotalGoal = Math.round(totalGoal / 4);
+    const weeklyProductGoal = Math.round(productGoal / 4);
+    const weeklyServiceGoal = Math.round(serviceGoal / 4);
+
+    return {
+      totalRevenue: [
+        { week: 'Sem 1', value: weeklyTotalGoal },
+        { week: 'Sem 2', value: weeklyTotalGoal },
+        { week: 'Sem 3', value: weeklyTotalGoal },
+        { week: 'Sem 4', value: weeklyTotalGoal },
+      ],
+      productRevenue: [
+        { week: 'Sem 1', value: weeklyProductGoal },
+        { week: 'Sem 2', value: weeklyProductGoal },
+        { week: 'Sem 3', value: weeklyProductGoal },
+        { week: 'Sem 4', value: weeklyProductGoal },
+      ],
+      serviceRevenue: [
+        { week: 'Sem 1', value: weeklyServiceGoal },
+        { week: 'Sem 2', value: weeklyServiceGoal },
+        { week: 'Sem 3', value: weeklyServiceGoal },
+        { week: 'Sem 4', value: weeklyServiceGoal },
+      ],
+      averageTicket: [
+        { week: 'Sem 1', value: ticketGoal },
+        { week: 'Sem 2', value: ticketGoal },
+        { week: 'Sem 3', value: ticketGoal },
+        { week: 'Sem 4', value: ticketGoal },
+      ],
     };
   }
 
