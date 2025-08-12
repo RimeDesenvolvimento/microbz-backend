@@ -42,18 +42,6 @@ export class SaleController {
         customer,
       } = req.query;
 
-      console.log({
-        page,
-        limit,
-        customerId,
-        status,
-        type,
-        startDate,
-        endDate,
-        description,
-        customer,
-      });
-
       const result = await this.saleService.getSales({
         page: page ? parseInt(page as string) : undefined,
         limit: limit ? parseInt(limit as string) : undefined,

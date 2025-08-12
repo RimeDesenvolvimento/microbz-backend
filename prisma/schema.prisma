@@ -37,9 +37,9 @@ model Customer {
 
   sales Sale[]
   companyBranchId Int
-  companyBranch CompanyBranch @relation(fields: [companyBranchId], references: [id])
+  companyBranch CompanyBranch @relation(fields: [companyBranchId], references: [id], onDelete: Cascade)
   importedSpreadsheetId Int
-  importedSpreadsheet ImportedSpreadsheet @relation(fields: [importedSpreadsheetId], references: [id])
+  importedSpreadsheet ImportedSpreadsheet @relation(fields: [importedSpreadsheetId], references: [id], onDelete: Cascade)
 
   @@map("customer")
 
@@ -59,11 +59,12 @@ enum SaleStatus {
 model ImportedSpreadsheet {
   id Int @id @default(autoincrement())
   fileName String
-  companyBranchId Int
+ 
   createdAt DateTime @default(now())
 
   customers Customer[]
   sales Sale[]
+  companyBranches CompanyBranch[]
 }
 
 model Sale {
@@ -83,7 +84,7 @@ model Sale {
   companyBranchId Int
   companyBranch CompanyBranch @relation(fields: [companyBranchId], references: [id])
   importedSpreadsheetId Int
-  importedSpreadsheet ImportedSpreadsheet @relation(fields: [importedSpreadsheetId], references: [id])
+  importedSpreadsheet ImportedSpreadsheet @relation(fields: [importedSpreadsheetId], references: [id], onDelete: Cascade)
 
   @@map("sale")
 }
@@ -110,6 +111,9 @@ model CompanyBranch {
   goals Goal[] 
   createdAt DateTime @default(now())
 
+  importedSpreadsheetId Int
+  importedSpreadsheet ImportedSpreadsheet @relation(fields: [importedSpreadsheetId], references: [id], onDelete: Cascade)
+
   @@unique([name, companyId])
   @@unique([code, companyId])
   @@map("company_branch")
@@ -120,10 +124,9 @@ model Goal {
   
  
   companyBranchId Int
-  companyBranch CompanyBranch @relation(fields: [companyBranchId], references: [id])
-  
- 
-  month Int 
+  companyBranch CompanyBranch @relation(fields: [companyBranchId], references: [id], onDelete: Cascade)
+
+  month Int
   year Int
   
  
