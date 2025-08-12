@@ -12,6 +12,7 @@ import { SaleRepository } from '../repository/sale-repository';
 import { CustomerRepository } from '../../customer/repository/customer-repository';
 import { CompanyBranchRepository } from '../../company-branch/repository/company-branch-repository';
 import { GoalRepository } from '../../goal/repository/goal-repository';
+import { getWeeksInMonth } from '../../../utils/date';
 
 export type CreateSaleParams = {
   saleDate: Date;
@@ -393,7 +394,7 @@ export class SaleService {
     serviceRevenue: Array<{ week: string; value: number }>;
     averageTicket: Array<{ week: string; value: number }>;
   } {
-    const weeks = this.getWeeksInMonth(startDate, endDate);
+    const weeks = getWeeksInMonth(startDate, endDate);
 
     const weeklyMetrics = weeks.map((week, index) => {
       const weeklySales = sales.filter(sale => {
@@ -430,31 +431,6 @@ export class SaleService {
         value: w.averageTicket,
       })),
     };
-  }
-
-  private getWeeksInMonth(
-    startDate: Date,
-    endDate: Date
-  ): Array<{ start: Date; end: Date }> {
-    const weeks: Array<{ start: Date; end: Date }> = [];
-    const totalDays = endDate.getDate();
-    const daysPerWeek = Math.ceil(totalDays / 4);
-
-    for (let i = 0; i < 4; i++) {
-      const weekStart = new Date(startDate);
-      weekStart.setDate(1 + i * daysPerWeek);
-
-      const weekEnd = new Date(startDate);
-      weekEnd.setDate(Math.min(totalDays, (i + 1) * daysPerWeek));
-
-      if (i === 3) {
-        weekEnd.setDate(totalDays);
-      }
-
-      weeks.push({ start: weekStart, end: weekEnd });
-    }
-
-    return weeks;
   }
 
   private calculateWeeklyGoals(goals: any): {
