@@ -38,6 +38,9 @@ model Customer {
   sales Sale[]
   companyBranchId Int
   companyBranch CompanyBranch @relation(fields: [companyBranchId], references: [id])
+  importedSpreadsheetId Int
+  importedSpreadsheet ImportedSpreadsheet @relation(fields: [importedSpreadsheetId], references: [id])
+
   @@map("customer")
 
 }
@@ -51,6 +54,16 @@ enum SaleType {
 enum SaleStatus {
   COMPLETED
   CANCELLED
+}
+
+model ImportedSpreadsheet {
+  id Int @id @default(autoincrement())
+  fileName String
+  companyBranchId Int
+  createdAt DateTime @default(now())
+
+  customers Customer[]
+  sales Sale[]
 }
 
 model Sale {
@@ -69,6 +82,8 @@ model Sale {
   customer Customer @relation(fields: [customerId], references: [id])
   companyBranchId Int
   companyBranch CompanyBranch @relation(fields: [companyBranchId], references: [id])
+  importedSpreadsheetId Int
+  importedSpreadsheet ImportedSpreadsheet @relation(fields: [importedSpreadsheetId], references: [id])
 
   @@map("sale")
 }
