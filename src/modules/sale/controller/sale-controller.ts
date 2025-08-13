@@ -40,14 +40,31 @@ export class SaleController {
         endDate,
         description,
         customer,
+        export: exportAll,
       } = req.query;
 
+      const companyId = Number(req.params.companyId);
+
       const result = await this.saleService.getSales({
-        page: page ? parseInt(page as string) : undefined,
-        limit: limit ? parseInt(limit as string) : undefined,
+        page: exportAll
+          ? undefined
+          : page
+          ? parseInt(page as string)
+          : undefined,
+        limit: exportAll
+          ? undefined
+          : limit
+          ? parseInt(limit as string)
+          : undefined,
         customerId: customerId ? parseInt(customerId as string) : undefined,
         status: status as any,
         type: type as any,
+        startDate: startDate as string,
+        endDate: endDate as string,
+        description: description as string,
+        customer: customer as string,
+        exportAll: exportAll === 'true',
+        companyId,
       });
 
       res.status(200).json(result);

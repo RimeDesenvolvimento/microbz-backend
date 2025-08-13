@@ -22,3 +22,14 @@ export function getWeeksInMonth(
 
   return weeks;
 }
+
+export function parseYMDToLocalDate(dateStr: string, endOfDay = false): Date {
+  const [y, m, d] = (dateStr || '').split('-').map(Number);
+  if (!y || !m || !d) {
+    throw new Error('Formato de data inválido. Use YYYY-MM-DD');
+  }
+
+  return endOfDay
+    ? new Date(y, m - 1, d, 23, 59, 59, 999)
+    : new Date(y, m - 1, d, 0, 0, 0, 0);
+}

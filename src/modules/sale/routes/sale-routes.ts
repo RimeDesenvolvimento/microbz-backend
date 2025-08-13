@@ -10,7 +10,7 @@ export default (router: Router): void => {
   router.get('/sales/metrics', (req, res, next) =>
     saleController.getSalesMetrics(req, res, next)
   );
-  router.get('/sales', (req, res, next) =>
+  router.get('/sales/:companyId', (req, res, next) =>
     saleController.getSales(req, res, next)
   );
 

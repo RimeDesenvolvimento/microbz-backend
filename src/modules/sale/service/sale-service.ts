@@ -33,11 +33,17 @@ export type CreateSaleParams = {
 };
 
 export type GetSalesParams = {
-  page?: number;
-  limit?: number;
-  customerId?: number;
+  page?: number | string;
+  limit?: number | string;
+  customerId?: number | string;
   status?: SaleStatus;
   type?: SaleType;
+  startDate?: string;
+  endDate?: string;
+  description?: string;
+  customer?: string;
+  exportAll?: boolean | string;
+  companyId: number;
 };
 
 export class SaleService {
@@ -237,30 +243,29 @@ export class SaleService {
     });
   }
   async getSales(
-    params: GetSalesParams
+    params: GetSalesParams & { exportAll?: boolean }
   ): Promise<{ sales: Sale[]; total: number }> {
-    const page = params.page || 1;
-    const limit = params.limit || 10;
+    const page = Number(params.page) || 1;
+    const limit = Number(params.limit) || 50;
 
-    if (page < 1 || limit < 1 || limit > 100) {
-      throw new BadRequestError('Parâmetros de paginação inválidos');
+    if (!params.exportAll) {
+      if (page < 1 || limit < 1 || limit > 100) {
+        throw new BadRequestError('Parâmetros de paginação inválidos');
+      }
     }
 
-    const offset = (page - 1) * limit;
+    const offset = params.exportAll ? undefined : (page - 1) * limit;
 
     const [sales, total] = await Promise.all([
       this.saleRepository.findMany({
         ...params,
         offset,
-        limit,
+        limit: params.exportAll ? undefined : limit,
       }),
       this.saleRepository.count(params),
     ]);
 
-    return {
-      sales,
-      total,
-    };
+    return { sales, total };
   }
 
   async getSalesMetrics(

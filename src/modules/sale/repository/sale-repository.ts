@@ -5,6 +5,7 @@ import {
   ImportedSpreadsheet,
 } from '@prisma/client';
 import prisma from '../../../../prisma/db';
+import { parseYMDToLocalDate } from '../../../utils/date';
 
 export type CreateSaleData = {
   saleDate: Date;
@@ -25,6 +26,7 @@ interface FindSalesParams {
   type?: string;
   startDate?: string;
   endDate?: string;
+  companyId?: string;
   description?: string;
   customer?: string;
   offset: number;
@@ -77,9 +79,14 @@ export class SaleRepository {
       customer,
       offset,
       limit,
+      companyId,
     } = params;
 
-    const where: any = {};
+    const where: any = {
+      companyBranch: {
+        companyId: Number(params.companyId),
+      },
+    };
 
     if (customerId) {
       where.customerId = customerId;
@@ -94,12 +101,12 @@ export class SaleRepository {
     }
 
     if (startDate || endDate) {
-      where.registrationDate = {};
+      where.saleDate = {};
       if (startDate) {
-        where.registrationDate.gte = new Date(startDate);
+        where.saleDate.gte = parseYMDToLocalDate(String(startDate), false);
       }
       if (endDate) {
-        where.registrationDate.lte = new Date(endDate);
+        where.saleDate.lte = parseYMDToLocalDate(String(endDate), true);
       }
     }
 
@@ -119,43 +126,68 @@ export class SaleRepository {
       };
     }
 
-    const sales = await prisma.sale.findMany({
+    return prisma.sale.findMany({
       where,
       include: {
         customer: true,
       },
       orderBy: {
-        registrationDate: 'desc',
+        saleDate: 'desc',
       },
       skip: offset,
       take: limit,
     });
-
-    return sales;
   }
 
-  async count(params: CountSalesParams): Promise<number> {
-    const { customerId, status, type } = params;
+  async count(params: FindSalesParams): Promise<number> {
+    const where: any = {
+      companyBranch: {
+        companyId: Number(params.companyId),
+      },
+    };
 
-    const where: any = {};
-
-    if (customerId) {
-      where.customerId = customerId;
+    if (params.customerId) {
+      where.customerId = params.customerId;
     }
 
-    if (status) {
-      where.status = status;
+    if (params.status) {
+      where.status = params.status;
     }
 
-    if (type) {
-      where.type = type;
+    if (params.type) {
+      where.type = params.type;
     }
 
-    const count = await prisma.sale.count({
-      where,
-    });
+    if (params.startDate || params.endDate) {
+      where.saleDate = {};
+      if (params.startDate) {
+        where.saleDate.gte = parseYMDToLocalDate(
+          String(params.startDate),
+          false
+        );
+      }
+      if (params.endDate) {
+        where.saleDate.lte = parseYMDToLocalDate(String(params.endDate), true);
+      }
+    }
 
-    return count;
+    if (params.description) {
+      where.description = {
+        contains: params.description,
+        mode: 'insensitive',
+      };
+    }
+
+    if (params.customer) {
+      where.customer = {
+        name: {
+          contains: params.customer,
+          mode: 'insensitive',
+        },
+      };
+    }
+
+    return prisma.sale.count({ where });
   }
 
   async getById(id: number): Promise<Sale | null> {
