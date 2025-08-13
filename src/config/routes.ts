@@ -15,7 +15,6 @@ export default (app: Express) => {
       if (file.isDirectory()) {
         loadRoutes(fullPath);
       } else if (file.name.endsWith('routes.ts')) {
-        console.log(`Importando rotas de: ${fullPath}`);
         (await import(fullPath)).default(router);
       }
     });

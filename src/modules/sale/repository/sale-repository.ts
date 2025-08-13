@@ -84,7 +84,7 @@ export class SaleRepository {
 
     const where: any = {
       companyBranch: {
-        companyId: Number(params.companyId),
+        companyId,
       },
     };
 
@@ -130,6 +130,11 @@ export class SaleRepository {
       where,
       include: {
         customer: true,
+        companyBranch: {
+          select: {
+            name: true,
+          },
+        },
       },
       orderBy: {
         saleDate: 'desc',

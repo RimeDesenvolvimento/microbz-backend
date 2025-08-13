@@ -8,7 +8,7 @@ export default (router: Router): void => {
     customerController.getCustomersMetrics(req, res, next)
   );
 
-  router.get('/customers', (req, res, next) =>
+  router.get('/customers/:companyId', (req, res, next) =>
     customerController.getCustomers(req, res, next)
   );
 };

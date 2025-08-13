@@ -24,15 +24,21 @@ type CustomerMetrics = {
     selectedPeriodGoal: number;
   };
 };
-
+export type GetAllCustomersParams = {
+  companyId: number;
+  name?: string;
+  taxId?: string;
+  page: number;
+  perPage: number;
+};
 export class CustomerService {
   constructor(
     private readonly customerRepository: CustomerRepository,
     private readonly goalRepository: GoalRepository
   ) {}
 
-  async getAll(): Promise<Customer[]> {
-    return await this.customerRepository.getAll();
+  async getAll(params: GetAllCustomersParams) {
+    return await this.customerRepository.getAll(params);
   }
 
   async getCustomerMetrics(

@@ -8,9 +8,18 @@ export class CustomerController {
 
   async getCustomers(req: Request, res: Response, next: NextFunction) {
     try {
-      const customers = await this.customerService.getAll();
+      const companyId = Number(req.params.companyId);
+      const { name, taxId, page = 1, perPage = 50 } = req.query;
 
-      res.status(200).json(customers);
+      const result = await this.customerService.getAll({
+        companyId,
+        name: name ? String(name) : undefined,
+        taxId: taxId ? String(taxId) : undefined,
+        page: Number(page),
+        perPage: Number(perPage),
+      });
+
+      res.status(200).json(result);
     } catch (error) {
       console.log('Erro ao buscar clientes: ', error);
       next(error);

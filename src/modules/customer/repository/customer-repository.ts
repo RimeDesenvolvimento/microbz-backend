@@ -6,6 +6,7 @@ import {
   SaleType,
 } from '@prisma/client';
 import prisma from '../../../../prisma/db';
+import { GetAllCustomersParams } from '../service/customer-service';
 
 export type CreateCustomerData = {
   name: string;
@@ -58,13 +59,48 @@ export class CustomerRepository {
     return customers;
   }
 
-  async getAll(): Promise<Customer[]> {
-    const customers = await prisma.customer.findMany({
-      orderBy: {
-        createdAt: 'desc',
+  async getAll({
+    companyId,
+    name,
+    taxId,
+    page,
+    perPage,
+  }: GetAllCustomersParams) {
+    const where: any = {
+      companyBranch: {
+        companyId,
       },
-    });
-    return customers;
+    };
+
+    if (name) {
+      where.name = {
+        contains: name,
+        mode: 'insensitive',
+      };
+    }
+
+    if (taxId) {
+      where.taxId = {
+        contains: taxId.replace(/\D/g, ''),
+      };
+    }
+
+    const [customers, total] = await Promise.all([
+      prisma.customer.findMany({
+        where,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip: (page - 1) * perPage,
+        take: perPage,
+      }),
+      prisma.customer.count({ where }),
+    ]);
+
+    return {
+      data: customers,
+      total,
+    };
   }
 
   async findByDateRangeAndBranch(
