@@ -59,9 +59,12 @@ enum SaleStatus {
 model ImportedSpreadsheet {
   id Int @id @default(autoincrement())
   fileName String
- 
+
+  
   createdAt DateTime @default(now())
 
+  companyId Int
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   customers Customer[]
   sales Sale[]
   companyBranches CompanyBranch[]
@@ -96,6 +99,7 @@ model Company {
  
   createdAt DateTime @default(now())
   companyBranches CompanyBranch[]
+  importedSpreadsheets ImportedSpreadsheet[]
   @@map("company")
 }
 

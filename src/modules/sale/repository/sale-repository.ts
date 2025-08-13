@@ -202,11 +202,12 @@ export class SaleRepository {
     return sales;
   }
 
-  async createSpreadsheet(fileName: string): Promise<ImportedSpreadsheet> {
+  async createSpreadsheet(data: {
+    fileName: string;
+    companyId: number;
+  }): Promise<ImportedSpreadsheet> {
     const spreadsheet = await prisma.importedSpreadsheet.create({
-      data: {
-        fileName,
-      },
+      data,
     });
 
     return spreadsheet;

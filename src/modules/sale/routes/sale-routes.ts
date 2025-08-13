@@ -14,8 +14,12 @@ export default (router: Router): void => {
     saleController.getSales(req, res, next)
   );
 
-  router.delete('/imported-spreadsheet/:id', (req, res, next) =>
+  router.delete('/imported-spreadsheets/:id', (req, res, next) =>
     saleController.deleteImportedSpreadsheet(req, res, next)
+  );
+
+  router.get('/imported-spreadsheets', (req, res, next) =>
+    saleController.getImportedSpreadsheets(req, res, next)
   );
 };
 
