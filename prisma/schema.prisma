@@ -82,7 +82,7 @@ model Sale {
 
   customer Customer @relation(fields: [customerId], references: [id])
   companyBranchId Int
-  companyBranch CompanyBranch @relation(fields: [companyBranchId], references: [id])
+  companyBranch CompanyBranch @relation(fields: [companyBranchId], references: [id], onDelete: Cascade)
   importedSpreadsheetId Int
   importedSpreadsheet ImportedSpreadsheet @relation(fields: [importedSpreadsheetId], references: [id], onDelete: Cascade)
 

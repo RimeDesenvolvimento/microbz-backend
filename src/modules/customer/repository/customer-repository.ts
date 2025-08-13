@@ -12,6 +12,7 @@ export type CreateCustomerData = {
   taxId: string | null;
   status: CustomerStatus;
   companyBranchId: number;
+  importedSpreadsheetId: number;
 };
 
 export class CustomerRepository {

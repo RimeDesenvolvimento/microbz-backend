@@ -74,4 +74,21 @@ export class SaleController {
       next(error);
     }
   }
+
+  async deleteImportedSpreadsheet(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const id = Number(req.params.id);
+
+      await this.saleService.deleteImportedSpreadsheet(id);
+
+      res.status(204).send();
+    } catch (error) {
+      console.log('Erro ao deletar planilha importada: ', error);
+      next(error);
+    }
+  }
 }

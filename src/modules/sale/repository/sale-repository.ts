@@ -1,4 +1,9 @@
-import { Sale, SaleType, SaleStatus } from '@prisma/client';
+import {
+  Sale,
+  SaleType,
+  SaleStatus,
+  ImportedSpreadsheet,
+} from '@prisma/client';
 import prisma from '../../../../prisma/db';
 
 export type CreateSaleData = {
@@ -33,11 +38,14 @@ export type CountSalesParams = {
 };
 
 export class SaleRepository {
-  async create(data: CreateSaleData): Promise<Sale> {
+  async create(
+    data: CreateSaleData,
+    importedSpreadsheetId: number
+  ): Promise<Sale> {
     const sale = await prisma.sale.create({
-      data,
-      include: {
-        customer: true,
+      data: {
+        ...data,
+        importedSpreadsheetId,
       },
     });
     return sale;
@@ -192,5 +200,39 @@ export class SaleRepository {
     });
 
     return sales;
+  }
+
+  async createSpreadsheet(fileName: string): Promise<ImportedSpreadsheet> {
+    const spreadsheet = await prisma.importedSpreadsheet.create({
+      data: {
+        fileName,
+      },
+    });
+
+    return spreadsheet;
+  }
+  async deleteImportedSpreadsheet(id: number): Promise<void> {
+    await prisma.$transaction(async tx => {
+      await tx.sale.deleteMany({
+        where: {
+          OR: [
+            { importedSpreadsheetId: id },
+            { customer: { importedSpreadsheetId: id } },
+          ],
+        },
+      });
+
+      await tx.customer.deleteMany({
+        where: { importedSpreadsheetId: id },
+      });
+
+      await tx.companyBranch.deleteMany({
+        where: { importedSpreadsheetId: id },
+      });
+
+      await tx.importedSpreadsheet.delete({
+        where: { id },
+      });
+    });
   }
 }

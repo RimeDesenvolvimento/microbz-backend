@@ -33,6 +33,7 @@ export class CompanyBranchRepository {
     name: string;
     code: string;
     companyId: number;
+    importedSpreadsheetId: number;
   }): Promise<CompanyBranch> {
     return prisma.companyBranch.create({
       data,

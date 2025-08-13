@@ -27,6 +27,7 @@ export type CreateSaleParams = {
   customer: string;
   taxId?: string;
   companyId: number;
+  fileName: string;
 };
 
 export type GetSalesParams = {
@@ -105,6 +106,9 @@ export class SaleService {
 
     const branchCache = new Map<string, CompanyBranch>();
 
+    const { id: importedSpreadsheetId } =
+      await this.saleRepository.createSpreadsheet(salesData[0].fileName);
+
     for (const { key, branchData, existing } of branchSearchResults) {
       if (existing) {
         branchCache.set(key, existing);
@@ -113,6 +117,7 @@ export class SaleService {
           name: branchData.name,
           code: branchData.name, // TODO: ver sobre código depois
           companyId: branchData.companyId,
+          importedSpreadsheetId,
         });
         branchCache.set(key, newBranch);
       }
@@ -180,6 +185,7 @@ export class SaleService {
           taxId: taxId || null,
           status: CustomerStatus.ACTIVE,
           companyBranchId: companyBranch.id,
+          importedSpreadsheetId,
         });
 
         if (taxId) {
@@ -204,6 +210,7 @@ export class SaleService {
           companyId,
           taxId,
           branch,
+          fileName,
           ...saleDataWithoutCustomer
         } = saleData;
         return {
@@ -217,7 +224,7 @@ export class SaleService {
     );
 
     const createdSalesPromises = salesToCreate.map(saleData =>
-      this.saleRepository.create(saleData)
+      this.saleRepository.create(saleData, importedSpreadsheetId)
     );
 
     const createdSales = await Promise.all(createdSalesPromises);
@@ -513,5 +520,9 @@ export class SaleService {
       serviceRevenue,
       averageTicket,
     };
+  }
+
+  async deleteImportedSpreadsheet(id: number): Promise<void> {
+    await this.saleRepository.deleteImportedSpreadsheet(id);
   }
 }
