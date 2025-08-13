@@ -6,6 +6,7 @@ import {
   CustomerStatus,
   CompanyBranch,
   Goal,
+  ImportedSpreadsheet,
 } from '@prisma/client';
 import { BadRequestError } from '../../../common/errors/http-errors';
 import { SaleRepository } from '../repository/sale-repository';
@@ -527,5 +528,11 @@ export class SaleService {
 
   async deleteImportedSpreadsheet(id: number): Promise<void> {
     await this.saleRepository.deleteImportedSpreadsheet(id);
+  }
+
+  async getImportedSpreadsheetsByCompanyId(
+    companyId: number
+  ): Promise<ImportedSpreadsheet[]> {
+    return this.saleRepository.getImportedSpreadsheetsByCompanyId(companyId);
   }
 }

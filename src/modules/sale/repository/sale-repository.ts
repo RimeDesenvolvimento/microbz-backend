@@ -236,4 +236,12 @@ export class SaleRepository {
       });
     });
   }
+
+  async getImportedSpreadsheetsByCompanyId(
+    companyId: number
+  ): Promise<ImportedSpreadsheet[]> {
+    return prisma.importedSpreadsheet.findMany({
+      where: { companyId },
+    });
+  }
 }

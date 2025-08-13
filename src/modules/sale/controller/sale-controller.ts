@@ -91,4 +91,22 @@ export class SaleController {
       next(error);
     }
   }
+
+  async getImportedSpreadsheetsByCompanyId(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const companyId = Number(req.params.companyId);
+
+      const spreadsheets =
+        await this.saleService.getImportedSpreadsheetsByCompanyId(companyId);
+
+      res.status(200).json(spreadsheets);
+    } catch (error) {
+      console.log('Erro ao buscar planilhas importadas: ', error);
+      next(error);
+    }
+  }
 }
