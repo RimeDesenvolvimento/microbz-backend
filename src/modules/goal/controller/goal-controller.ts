@@ -13,8 +13,28 @@ export class GoalController {
       const data = req.body;
 
       await this.goalService.createGoal(data);
+
+      res.status(201).json({ message: 'Goal created successfully' });
     } catch (error) {
       console.error('Error creating goal:', error);
+      next(error);
+    }
+  }
+
+  async updateGoal(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const { id } = req.params;
+      const data = req.body;
+
+      await this.goalService.updateGoal(Number(id), data);
+
+      res.status(200).json({ message: 'Goal updated successfully' });
+    } catch (error) {
+      console.error('Error updating goal:', error);
       next(error);
     }
   }

@@ -9,6 +9,9 @@ export default (router: Router): void => {
   router.post('/goals', validate(createGoalSchema), (req, res, next) =>
     goalsController.createGoal(req, res, next)
   );
+  router.put('/goals/:id', validate(createGoalSchema), (req, res, next) =>
+    goalsController.updateGoal(req, res, next)
+  );
   router.get(
     '/goals/:selectedBranchId/:selectedYear/:selectedMonth',
     (req, res, next) => goalsController.getGoals(req, res, next)

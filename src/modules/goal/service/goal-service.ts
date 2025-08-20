@@ -20,6 +20,16 @@ export class GoalService {
     await this.goalRepository.create(data);
   }
 
+  async updateGoal(id: number, data: Partial<Goal>): Promise<void> {
+    const existingGoal = await this.goalRepository.getById(id);
+
+    if (!existingGoal) {
+      throw new Error('Goal not found');
+    }
+
+    await this.goalRepository.update(id, data);
+  }
+
   async getGoals(
     selectedBranchId: number,
     selectedYear: number,

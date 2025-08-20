@@ -312,6 +312,9 @@ export class SaleService {
         goal: Array<{ week: string; value: number }>;
       };
     };
+    greenFlagPercentage: number;
+    yellowFlagPercentage: number;
+    redFlagPercentage: number;
   }> {
     const year = monthAndYear.getFullYear();
     const month = monthAndYear.getMonth();
@@ -397,6 +400,9 @@ export class SaleService {
           goal: weeklyGoals.averageTicket,
         },
       },
+      greenFlagPercentage: goals ? Number(goals.greenFlagPercentage) : 0,
+      yellowFlagPercentage: goals ? Number(goals.yellowFlagPercentage) : 0,
+      redFlagPercentage: goals ? Number(goals.redFlagPercentage) : 0,
     };
   }
 
