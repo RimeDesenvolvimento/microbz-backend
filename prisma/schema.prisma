@@ -154,7 +154,12 @@ model Goal {
   leadToMeetingRate Decimal @db.Decimal(5, 2) @default(0) 
   meetingToSaleRate Decimal @db.Decimal(5, 2) @default(0) 
   roas Decimal @db.Decimal(8, 2) @default(0)
-  
+
+  redFlagPercentage Decimal @db.Decimal(5, 2) @default(0)
+  yellowFlagPercentage Decimal @db.Decimal(5, 2) @default(0)
+  greenFlagPercentage Decimal @db.Decimal(5, 2) @default(0)
+
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   

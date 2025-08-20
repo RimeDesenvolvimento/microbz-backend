@@ -19,4 +19,7 @@ export const createGoalSchema = z.object({
   leadToMeetingRate: z.number().min(0).max(100).default(0),
   meetingToSaleRate: z.number().min(0).max(100).default(0),
   roas: z.number().min(0).default(0),
+  redFlagPercentage: z.number().min(0).max(100).default(0),
+  yellowFlagPercentage: z.number().min(0).max(100).default(0),
+  greenFlagPercentage: z.number().min(0).max(100).default(0),
 });
