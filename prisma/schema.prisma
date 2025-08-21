@@ -186,14 +186,7 @@ model MarketingMetrics {
   investment          Float 
   leadsGenerated      Int  
   sales               Int  
-  cpl                 Float 
-  meetingToSaleRate   Float 
-  roas                Float 
-  impressions         Int?    
-  clicks              Int?    
-  ctr                 Float?  
-  cpc                 Float?  
-  
+
   
   companyBranchId Int
   companyBranch CompanyBranch @relation(fields: [companyBranchId], references: [id], onDelete: Cascade)
