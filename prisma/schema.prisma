@@ -113,6 +113,7 @@ model CompanyBranch {
   sales Sale[]
   customers Customer[]
   goals Goal[] 
+  marketingMetrics MarketingMetrics[]
   createdAt DateTime @default(now())
 
   importedSpreadsheetId Int
@@ -166,4 +167,40 @@ model Goal {
   
   @@unique([companyBranchId, month, year])
   @@map("goal")
+}
+
+
+enum MarketingSource {
+  META
+  GOOGLE
+}
+
+model MarketingMetrics {
+  id        Int   @id @default(autoincrement())
+  date      DateTime 
+  source    MarketingSource 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  
+  investment          Float 
+  leadsGenerated      Int  
+  sales               Int  
+  cpl                 Float 
+  meetingToSaleRate   Float 
+  roas                Float 
+  impressions         Int?    
+  clicks              Int?    
+  ctr                 Float?  
+  cpc                 Float?  
+  
+  
+  companyBranchId Int
+  companyBranch CompanyBranch @relation(fields: [companyBranchId], references: [id], onDelete: Cascade)
+  
+  
+  @@index([date])
+  @@index([source])
+  @@index([companyBranchId])
+  @@index([date, source])
 }
