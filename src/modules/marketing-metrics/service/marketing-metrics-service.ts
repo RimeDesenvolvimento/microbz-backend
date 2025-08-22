@@ -1,4 +1,4 @@
-import { MarketingMetrics, MarketingSource } from '@prisma/client';
+import { Goal, MarketingMetrics, MarketingSource } from '@prisma/client';
 import {
   BadRequestError,
   NotFoundError,
@@ -6,6 +6,7 @@ import {
 import { MarketingMetricsRepository } from '../repository/marketing-metrics-repository';
 import { getWeeksInMonth } from '../../../utils/date';
 import { GoalRepository } from '../../goal/repository/goal-repository';
+import { SaleRepository } from '../../sale/repository/sale-repository';
 
 export type CreateMarketingMetricsParams = {
   date: string;
@@ -46,7 +47,8 @@ export type GetMarketingMetricsFilters = {
 export class MarketingMetricsService {
   constructor(
     private readonly marketingMetricsRepository: MarketingMetricsRepository,
-    private readonly goalRepository: GoalRepository
+    private readonly goalRepository: GoalRepository,
+    private readonly saleRepository: SaleRepository
   ) {}
 
   async create(
@@ -184,20 +186,49 @@ export class MarketingMetricsService {
       ),
     ]);
 
-    const currentCalculatedMetrics =
-      this.calculateMarketingMetrics(currentMetrics);
-    const previousCalculatedMetrics =
-      this.calculateMarketingMetrics(previousMetrics);
+    const [currentPeriodSales, previousPeriodSales] = await Promise.all([
+      this.saleRepository.findByDateRange(startDate, endDate, companyBranchId),
+      this.saleRepository.findByDateRange(
+        previousStartDate,
+        previousEndDate,
+        companyBranchId
+      ),
+    ]);
 
-    const currentWeeklyMetrics = this.calculateWeeklyMarketingMetrics(
+    const currentSalesTotalRevenue = currentPeriodSales.reduce(
+      (sum, sale) => sum + Number(sale.totalValue),
+      0
+    );
+
+    const previousSalesTotalRevenue = previousPeriodSales.reduce(
+      (sum, sale) => sum + Number(sale.totalValue),
+      0
+    );
+
+    const currentCalculatedMetrics = this.calculateMarketingMetrics(
+      currentMetrics.map(item => ({
+        ...item,
+        totalRevenue: currentSalesTotalRevenue,
+      }))
+    );
+    const previousCalculatedMetrics = this.calculateMarketingMetrics(
+      previousMetrics.map(item => ({
+        ...item,
+        totalRevenue: previousSalesTotalRevenue,
+      }))
+    );
+
+    const currentWeeklyMetrics = await this.calculateWeeklyMarketingMetrics(
       currentMetrics,
       startDate,
-      endDate
+      endDate,
+      companyBranchId
     );
-    const previousWeeklyMetrics = this.calculateWeeklyMarketingMetrics(
+    const previousWeeklyMetrics = await this.calculateWeeklyMarketingMetrics(
       previousMetrics,
       previousStartDate,
-      previousEndDate
+      previousEndDate,
+      companyBranchId
     );
 
     const weeklyGoals = this.calculateWeeklyMarketingGoals(goals);
@@ -266,38 +297,54 @@ export class MarketingMetricsService {
     };
   }
 
-  private calculateWeeklyMarketingMetrics(
+  private async calculateWeeklyMarketingMetrics(
     metrics: MarketingMetrics[],
     startDate: Date,
-    endDate: Date
-  ): {
+    endDate: Date,
+    companyBranchId: number
+  ): Promise<{
     totalInvestment: Array<{ week: string; value: number }>;
     totalLeads: Array<{ week: string; value: number }>;
     totalSales: Array<{ week: string; value: number }>;
     averageCpl: Array<{ week: string; value: number }>;
     averageMeetingToSaleRate: Array<{ week: string; value: number }>;
     averageRoas: Array<{ week: string; value: number }>;
-  } {
+  }> {
     const weeks = getWeeksInMonth(startDate, endDate);
 
-    const weeklyMetrics = weeks.map((week, index) => {
-      const weeklyData = metrics.filter(metric => {
-        const metricDate = new Date(metric.date);
-        return metricDate >= week.start && metricDate <= week.end;
-      });
+    const weeklyMetrics = await Promise.all(
+      weeks.map(async (week, index) => {
+        const weeklyData = metrics.filter(metric => {
+          const metricDate = new Date(metric.date);
+          return metricDate >= week.start && metricDate <= week.end;
+        });
 
-      const weekMetrics = this.calculateMarketingMetrics(weeklyData);
+        const sales = await this.saleRepository.findByDateRange(
+          week.start,
+          week.end,
+          companyBranchId
+        );
 
-      return {
-        week: `Sem ${index + 1}`,
-        totalInvestment: weekMetrics.totalInvestment,
-        totalLeads: weekMetrics.totalLeads,
-        totalSales: weekMetrics.totalSales,
-        averageCpl: weekMetrics.averageCpl,
-        averageMeetingToSaleRate: weekMetrics.averageMeetingToSaleRate,
-        averageRoas: weekMetrics.averageRoas,
-      };
-    });
+        const totalRevenue = sales.reduce(
+          (sum, sale) => sum + Number(sale.totalValue),
+          0
+        );
+
+        const weekMetrics = this.calculateMarketingMetrics(
+          weeklyData.map(item => ({ ...item, totalRevenue }))
+        );
+
+        return {
+          week: `Sem ${index + 1}`,
+          totalInvestment: weekMetrics.totalInvestment,
+          totalLeads: weekMetrics.totalLeads,
+          totalSales: weekMetrics.totalSales,
+          averageCpl: weekMetrics.averageCpl,
+          averageMeetingToSaleRate: weekMetrics.averageMeetingToSaleRate,
+          averageRoas: weekMetrics.averageRoas,
+        };
+      })
+    );
 
     return {
       totalInvestment: weeklyMetrics.map(w => ({
@@ -352,12 +399,12 @@ export class MarketingMetricsService {
       };
     }
 
-    const weeklyInvestmentGoal = Math.round(Number(goals.totalInvestment) / 4);
-    const weeklyLeadsGoal = Math.round(Number(goals.totalLeads) / 4);
-    const weeklySalesGoal = Math.round(Number(goals.totalSales) / 4);
-    const cplGoal = Number(goals.averageCpl);
-    const meetingToSaleRateGoal = Number(goals.averageMeetingToSaleRate);
-    const roasGoal = Number(goals.averageRoas);
+    const weeklyInvestmentGoal = Math.round(Number(goals.marketing) / 4);
+    const weeklyLeadsGoal = Math.round(Number(goals.leadsGenerated) / 4);
+    const weeklySalesGoal = Math.round(Number(goals.marketingSales) / 4);
+    const cplGoal = Number(goals.cpl);
+    const meetingToSaleRateGoal = Number(goals.meetingToSaleRate);
+    const roasGoal = Number(goals.roas);
 
     return {
       totalInvestment: [
@@ -399,7 +446,9 @@ export class MarketingMetricsService {
     };
   }
 
-  private calculateMarketingMetrics(metrics: MarketingMetrics[]): {
+  private calculateMarketingMetrics(
+    metrics: (MarketingMetrics & { totalRevenue: number })[]
+  ): {
     totalInvestment: number;
     totalLeads: number;
     totalSales: number;
@@ -434,9 +483,9 @@ export class MarketingMetricsService {
     const averageMeetingToSaleRate =
       totalLeads > 0 ? Number(((totalSales / totalLeads) * 100).toFixed(2)) : 0;
 
-    const averageRoas = //TODO: passar valor total do faturamento do periodo.
+    const averageRoas =
       totalInvestment > 0
-        ? Number((totalSales / totalInvestment).toFixed(2))
+        ? Number((metrics[0].totalRevenue / totalInvestment).toFixed(2))
         : 0;
 
     return {
