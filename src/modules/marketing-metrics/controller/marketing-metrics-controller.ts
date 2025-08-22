@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { MarketingMetricsService } from '../service/marketing-metrics-service';
+import { MarketingSource } from '@prisma/client';
 
 export class MarketingMetricsController {
   constructor(
@@ -24,6 +25,38 @@ export class MarketingMetricsController {
       });
     } catch (error) {
       console.log('Erro ao criar métricas de marketing: ', error);
+      next(error);
+    }
+  }
+
+  async getAll(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { companyBranchId } = req.params;
+      const dateString = req.query.monthAndYear as string;
+
+      const { page, limit, source } = req.query;
+
+      if (!companyBranchId || !dateString || !page || !limit) {
+        res.status(400).json({ message: 'Parâmetros inválidos' });
+        return;
+      }
+
+      const [year, month] = dateString.split('-').map(Number);
+      const monthAndYear = new Date(year, month - 1, 1);
+
+      const { metrics, count } = await this.marketingMetricsService.getAll({
+        companyBranchId: Number(companyBranchId),
+        monthAndYear,
+        page: Number(page),
+        limit: Number(limit),
+        source: source as MarketingSource,
+      });
+
+      const totalPages = Math.ceil(count / Number(limit));
+
+      res.status(200).json({ data: metrics, totalPages });
+    } catch (error) {
+      console.log('Erro ao buscar métricas de marketing: ', error);
       next(error);
     }
   }

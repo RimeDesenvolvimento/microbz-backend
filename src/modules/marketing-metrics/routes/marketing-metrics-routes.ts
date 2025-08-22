@@ -16,9 +16,14 @@ export default (router: Router): void => {
   );
 
   router.get(
-    '/companies/:companyBranchId/marketing-metrics',
+    '/companies/:companyBranchId/marketing-metrics/average',
     (req, res, next) =>
       marketingMetricsController.getAverageMarketingMetrics(req, res, next)
+  );
+
+  router.get(
+    '/companies/:companyBranchId/marketing-metrics',
+    (req, res, next) => marketingMetricsController.getAll(req, res, next)
   );
 
   router.get(

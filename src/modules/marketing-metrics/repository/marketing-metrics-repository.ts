@@ -45,25 +45,67 @@ export class MarketingMetricsRepository {
 
   async getAll(
     companyBranchId: number,
-    monthAndYear: Date
+    monthAndYear?: Date,
+    page?: number,
+    limit?: number,
+    source?: MarketingSource
   ): Promise<MarketingMetrics[]> {
-    const where: any = {
-      companyBranchId,
-      date: {
+    const where: any = { companyBranchId };
+
+    if (source) {
+      where.source = source;
+    }
+
+    if (monthAndYear) {
+      where.date = {
         gte: new Date(monthAndYear.getFullYear(), monthAndYear.getMonth(), 1),
-        lt: new Date(
+        lte: new Date(
           monthAndYear.getFullYear(),
           monthAndYear.getMonth() + 1,
           1
         ),
-      },
-    };
+      };
+    }
 
     const metrics = await prisma.marketingMetrics.findMany({
       where,
+      orderBy: {
+        date: 'desc',
+      },
+      skip: page && limit ? (page - 1) * limit : undefined,
+      take: limit,
     });
 
     return metrics;
+  }
+
+  async countAll(
+    companyBranchId: number,
+    monthAndYear?: Date,
+    source?: MarketingSource
+  ): Promise<number> {
+    const where: any = { companyBranchId };
+
+    if (source) {
+      where.source = source;
+    }
+
+    if (monthAndYear) {
+      where.date = {
+        gte: new Date(monthAndYear.getFullYear(), monthAndYear.getMonth(), 1),
+        lte: new Date(
+          monthAndYear.getFullYear(),
+          monthAndYear.getMonth() + 1,
+          1
+        ),
+      };
+    }
+
+    const count = await prisma.marketingMetrics.count({
+      where,
+    });
+
+    return count;
   }
 
   async getById(

@@ -7,6 +7,7 @@ import { MarketingMetricsRepository } from '../repository/marketing-metrics-repo
 import { getWeeksInMonth } from '../../../utils/date';
 import { GoalRepository } from '../../goal/repository/goal-repository';
 import { SaleRepository } from '../../sale/repository/sale-repository';
+import { a } from 'vitest/dist/chunks/suite.d.FvehnV49';
 
 export type CreateMarketingMetricsParams = {
   date: string;
@@ -90,6 +91,37 @@ export class MarketingMetricsService {
     );
 
     return createdMetrics;
+  }
+
+  async getAll({
+    companyBranchId,
+    monthAndYear,
+    page,
+    limit,
+    source,
+  }: {
+    companyBranchId: number;
+    monthAndYear: Date;
+    page: number;
+    limit: number;
+    source: MarketingSource;
+  }): Promise<{ metrics: MarketingMetrics[]; count: number }> {
+    const [metrics, count] = await Promise.all([
+      this.marketingMetricsRepository.getAll(
+        companyBranchId,
+        monthAndYear,
+        page,
+        limit,
+        source
+      ),
+      this.marketingMetricsRepository.countAll(
+        companyBranchId,
+        monthAndYear,
+        source
+      ),
+    ]);
+
+    return { metrics, count };
   }
 
   async getAverageMetrics(
