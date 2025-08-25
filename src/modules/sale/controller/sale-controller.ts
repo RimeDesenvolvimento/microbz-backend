@@ -92,6 +92,33 @@ export class SaleController {
     }
   }
 
+  async deleteSales(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = Number(req.params.id);
+
+      await this.saleService.deleteSales(id);
+
+      res.status(204).send();
+    } catch (error) {
+      console.log('Erro ao deletar venda: ', error);
+      next(error);
+    }
+  }
+
+  async updateSales(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = Number(req.params.id);
+      const salesData = req.body;
+
+      await this.saleService.updateSales(id, salesData);
+
+      res.status(204).send();
+    } catch (error) {
+      console.log('Erro ao atualizar venda: ', error);
+      next(error);
+    }
+  }
+
   async deleteImportedSpreadsheet(
     req: Request,
     res: Response,

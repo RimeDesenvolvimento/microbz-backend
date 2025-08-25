@@ -132,6 +132,7 @@ export class SaleRepository {
         customer: true,
         companyBranch: {
           select: {
+            id: true,
             name: true,
           },
         },
@@ -141,6 +142,19 @@ export class SaleRepository {
       },
       skip: offset,
       take: limit,
+    });
+  }
+
+  async delete(id: number): Promise<void> {
+    await prisma.sale.delete({
+      where: { id },
+    });
+  }
+
+  async update(id: number, data: Partial<Sale>): Promise<void> {
+    await prisma.sale.update({
+      where: { id },
+      data,
     });
   }
 

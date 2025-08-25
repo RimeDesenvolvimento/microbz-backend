@@ -242,6 +242,15 @@ export class SaleService {
       return createdSales;
     });
   }
+
+  async deleteSales(id: number): Promise<void> {
+    await this.saleRepository.delete(id);
+  }
+
+  async updateSales(id: number, data: Partial<Sale>): Promise<void> {
+    await this.saleRepository.update(id, data);
+  }
+
   async getSales(
     params: GetSalesParams & { exportAll?: boolean }
   ): Promise<{ sales: Sale[]; total: number }> {
